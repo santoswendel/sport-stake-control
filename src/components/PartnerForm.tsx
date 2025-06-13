@@ -1,6 +1,5 @@
 
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,15 +7,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Partner } from "../types";
 import { validateCPF } from "../lib/calculations";
+import { useLocalStorage } from "../hooks/useLocalStorage";
 
 interface PartnerFormProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onClose: () => void;
   partner?: Partner;
-  onSave: (partner: Omit<Partner, 'id' | 'createdAt' | 'houses'>) => void;
 }
 
-export function PartnerForm({ open, onOpenChange, partner, onSave }: PartnerFormProps) {
+export function PartnerForm({ onClose, partner }: PartnerFormProps) {
+  const [partners, setPartners] = useLocalStorage<Partner[]>('partners', []);
   const [formData, setFormData] = useState({
     name: partner?.name || '',
     cpf: partner?.cpf || '',
@@ -54,20 +53,27 @@ export function PartnerForm({ open, onOpenChange, partner, onSave }: PartnerForm
       return;
     }
 
-    onSave({
+    const newPartner: Partner = {
+      id: partner?.id || Date.now().toString(),
       name: formData.name.trim(),
       cpf: formData.cpf.replace(/\D/g, ''),
-      notes: formData.notes.trim() || undefined
-    });
+      notes: formData.notes.trim() || undefined,
+      createdAt: partner?.createdAt || new Date(),
+      houses: partner?.houses || []
+    };
+
+    if (partner) {
+      setPartners(partners.map(p => p.id === partner.id ? newPartner : p));
+    } else {
+      setPartners([...partners, newPartner]);
+    }
     
     toast({
       title: partner ? "Parceiro atualizado" : "Parceiro criado",
       description: "Dados salvos com sucesso!",
     });
     
-    onOpenChange(false);
-    setFormData({ name: '', cpf: '', notes: '' });
-    setErrors({});
+    onClose();
   };
 
   const handleCPFChange = (value: string) => {
@@ -82,60 +88,56 @@ export function PartnerForm({ open, onOpenChange, partner, onSave }: PartnerForm
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {partner ? 'Editar Parceiro' : 'Novo Parceiro'}
-          </DialogTitle>
-        </DialogHeader>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Nome Completo *</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="Ex: João Silva Santos"
-              className={errors.name ? 'border-red-500' : ''}
-            />
-            {errors.name && <p className="text-sm text-red-600">{errors.name}</p>}
-          </div>
+    <div className="p-6">
+      <h2 className="text-2xl font-bold mb-6">
+        {partner ? 'Editar Parceiro' : 'Novo Parceiro'}
+      </h2>
+      
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="name">Nome Completo *</Label>
+          <Input
+            id="name"
+            value={formData.name}
+            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+            placeholder="Ex: João Silva Santos"
+            className={errors.name ? 'border-red-500' : ''}
+          />
+          {errors.name && <p className="text-sm text-red-600">{errors.name}</p>}
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="cpf">CPF *</Label>
-            <Input
-              id="cpf"
-              value={formData.cpf}
-              onChange={(e) => handleCPFChange(e.target.value)}
-              placeholder="000.000.000-00"
-              className={errors.cpf ? 'border-red-500' : ''}
-            />
-            {errors.cpf && <p className="text-sm text-red-600">{errors.cpf}</p>}
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="cpf">CPF *</Label>
+          <Input
+            id="cpf"
+            value={formData.cpf}
+            onChange={(e) => handleCPFChange(e.target.value)}
+            placeholder="000.000.000-00"
+            className={errors.cpf ? 'border-red-500' : ''}
+          />
+          {errors.cpf && <p className="text-sm text-red-600">{errors.cpf}</p>}
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="notes">Observações</Label>
-            <Textarea
-              id="notes"
-              value={formData.notes}
-              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-              placeholder="Anotações internas sobre o parceiro..."
-              rows={3}
-            />
-          </div>
-        </form>
+        <div className="space-y-2">
+          <Label htmlFor="notes">Observações</Label>
+          <Textarea
+            id="notes"
+            value={formData.notes}
+            onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+            placeholder="Anotações internas sobre o parceiro..."
+            rows={3}
+          />
+        </div>
 
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+        <div className="flex gap-3 pt-4">
+          <Button type="button" variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button type="submit" onClick={handleSubmit}>
+          <Button type="submit">
             {partner ? 'Atualizar' : 'Salvar'}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </form>
+    </div>
   );
 }

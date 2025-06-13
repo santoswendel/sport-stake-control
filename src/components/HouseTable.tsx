@@ -1,8 +1,9 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Plus, TrendingUp, TrendingDown } from "lucide-react";
+import { Building2, Plus } from "lucide-react";
 import { BettingHouse } from "../types";
 import { calculateHouseBalance, calculateHouseProfit, formatCurrency } from "../lib/calculations";
 
